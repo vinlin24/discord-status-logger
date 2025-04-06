@@ -26,7 +26,10 @@ set statusEmoji to item 2 of statusLines
 set safeText to do shell script "printf '%q' " & quoted form of statusText
 
 try
-    do shell script uploadScriptPath & " " & safeText & " '" & statusEmoji & "'"
+    -- .app shells use a minified default environment, so we need to manually
+    -- restore PATH to include anything we need.
+    do shell script "export PATH=/opt/homebrew/bin:$PATH; " Â
+        & uploadScriptPath & " " & safeText & " '" & statusEmoji & "'"
 on error errorMessage
     display dialog "Status upload error: " & errorMessage
     error errorMessage
