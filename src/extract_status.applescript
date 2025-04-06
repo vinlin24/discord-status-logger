@@ -6,6 +6,7 @@
 -- CSS selectors obtained from Web Inspector. Anticipate frequent change.
 set avatarSelector to "#app-mount div.avatarWrapper__37e49"
 set statusSelector to "#popout_51 > div > div > div > div > div > header > div.container_ab8609.biteSize_ab8609.editable_ab8609 > div.outer_ab8609.biteSize_ab8609 > span > div > div"
+set emojiSelector to "#popout_51 > div > div > div > div > div > header > div.container_ab8609.biteSize_ab8609.editable_ab8609 > div.outer_ab8609.biteSize_ab8609 > span > div > img"
 
 tell application "Safari"
     -- NOTE: No `activate` here so the script doesn't steal focus.
@@ -16,17 +17,6 @@ end tell
 delay 4
 
 -- Find the index of the newly opened Discord tab so we can close it later.
-set discordTabIndex to 0
-tell application "Safari"
-    set tabList to tabs of front window
-    repeat with i from 1 to count of tabList
-        if URL of item i of tabList contains "discord.com/channels/@me" then
-            set discordTabIndex to i
-            exit repeat
-        end if
-    end repeat
-end tell
-
 on closeDiscordTab(tabIndex)
     if tabIndex is not 0 then
         tell application "Safari"
@@ -36,6 +26,22 @@ on closeDiscordTab(tabIndex)
         end tell
     end if
 end closeDiscordTab
+
+set discordTabIndex to 0
+tell application "Safari"
+    set tabList to tabs of front window
+    repeat with i from 1 to count of tabList
+        if URL of item i of tabList contains "discord.com/login" then
+            closeDiscordTab(i)
+            display dialog "Stopped by login prompt!"
+            error "Stopped by login prompt!"
+        end if
+        if URL of item i of tabList contains "discord.com/channels/@me" then
+            set discordTabIndex to i
+            exit repeat
+        end if
+    end repeat
+end tell
 
 -- First click the avatar to open profile popout.
 tell application "Safari"
@@ -60,22 +66,34 @@ end try
 delay 1
 
 -- Try to get the custom status now that the popout is added to the DOM.
+set statusText to ""
 tell application "Safari"
-    set statusText to do JavaScript "
+    set extractedStatusText to do JavaScript "
         const statusEl = document.querySelector('" & statusSelector & "');
-        if (!statusEl) {
-            throw new Error('Status element not found!');
-        }
-        statusEl.innerText;
+        statusEl ? statusEl.innerText : '';
     " in front document
+    try
+        copy extractedStatusText to statusText
+    end try
 end tell
-try
-    statusText
-on error number -2753
+
+set statusEmoji to ""
+tell application "Safari"
+    set extractedStatusEmoji to do JavaScript "
+        const emojiEl = document.querySelector('" & emojiSelector & "');
+        emojiEl ? emojiEl.getAttribute('data-name') : '';
+    " in front document
+    try
+        copy extractedStatusEmoji to statusEmoji
+    end try
+end tell
+
+-- I wouldn't have an empty status. It's more likely there was an error.
+if statusText is "" and statusEmoji is "" then
     closeDiscordTab(discordTabIndex)
     display dialog "Failed to extract status!"
     error "Failed to extract status!"
-end try
+end if
 
 closeDiscordTab(discordTabIndex)
-return statusText
+return statusText & "\n" & statusEmoji

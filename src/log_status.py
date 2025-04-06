@@ -29,7 +29,7 @@ class PostData(TypedDict):
 
 parser = argparse.ArgumentParser(prog=SCRIPT_NAME)
 parser.add_argument("status")
-parser.add_argument("emoji", nargs="?", default="")
+parser.add_argument("emoji")
 
 
 def exit_with_error(message: str) -> NoReturn:
