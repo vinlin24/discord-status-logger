@@ -4,7 +4,9 @@
 
 import argparse
 import csv
+import http.client
 import io
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -14,21 +16,15 @@ from pathlib import Path
 from typing import NoReturn, TypedDict
 
 SCRIPT_NAME = Path(sys.argv[0]).name
-SECRETS_PATH = Path(__file__).parent.parent / ".env"
+API_SECRET_PATH = Path(__file__).parent.parent / "secret.txt"
 APP_URL_TEMPLATE = "https://script.google.com/macros/s/{deployment_id}/exec"
 
-
-class Secrets(TypedDict):
-    API_SECRET: str
-    DEPLOYMENT_ID: str
+CsvRow = tuple[str, str, str, str]
 
 
 class PostData(TypedDict):
     secret: str
     line: str
-
-
-CsvRow = tuple[str, str, str, str]
 
 
 parser = argparse.ArgumentParser(prog=SCRIPT_NAME)
@@ -41,21 +37,28 @@ def exit_with_error(message: str) -> NoReturn:
     sys.exit(1)
 
 
-def load_secrets() -> Secrets:
-    if not SECRETS_PATH.exists():
-        exit_with_error(f"{SECRETS_PATH} file not found")
+def load_api_secret() -> str:
+    if not API_SECRET_PATH.exists():
+        exit_with_error(f"{API_SECRET_PATH} (API secret) file not found")
 
-    content = SECRETS_PATH.read_text(encoding="utf-8")
+    content = API_SECRET_PATH.read_text(encoding="utf-8")
+    return content.strip()
 
-    pairs = dict[str, str]()
-    for line in content.splitlines():
-        line = line.strip()
-        if line.startswith("#"):
-            continue
-        lhs, rhs = line.split("=")
-        pairs[lhs.strip()] = rhs.strip().strip("'\"")
 
-    return Secrets(**pairs)
+def parse_deployment_id() -> str:
+    # pylint: disable=subprocess-run-check
+    process = subprocess.run(
+        ["clasp", "list-deployments"],
+        capture_output=True,
+        text=True,
+    )
+
+    if process.returncode != 0:
+        exit_with_error(f"clasp: {process.stderr}")
+
+    last_line = process.stdout.splitlines()[-1]
+    _, deployment_id, *_ = last_line.split()
+    return deployment_id
 
 
 def format_csv_line(status: str, emoji: str) -> str:
@@ -68,33 +71,34 @@ def format_csv_line(status: str, emoji: str) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(row)
-    return buffer.getvalue().strip()
+    raw_csv_line = buffer.getvalue().strip()
+
+    return raw_csv_line
 
 
-def call_apps_script(csv_line: str, secrets: Secrets) -> None:
-    post_data: PostData = {
-        "line": csv_line,
-        "secret": secrets["API_SECRET"],
-    }
-
+def call_apps_script(deployment_id: str, data: PostData) -> str:
     # NOTE: Encode data for application/x-www-form-urlencoded.
-    encoded_data = urllib.parse.urlencode(post_data).encode("utf-8")
+    encoded_data = urllib.parse.urlencode(data).encode("utf-8")
+    endpoint = APP_URL_TEMPLATE.format(deployment_id=deployment_id)
 
-    endpoint = APP_URL_TEMPLATE.format(deployment_id=secrets["DEPLOYMENT_ID"])
     request = urllib.request.Request(
         endpoint,
         data=encoded_data,
         method="POST",
     )
 
+    response: http.client.HTTPResponse
     try:
         with urllib.request.urlopen(request) as response:
-            response_text = response.read().decode()
+            return response.read().decode()
     except urllib.error.HTTPError as error:
         exit_with_error(f"HTTP {error.code} Error: {error.reason}")
     except urllib.error.URLError as error:
         exit_with_error(f"URL Error: {error.reason}")
 
+
+def process_apps_script_response(response_text: str) -> None:
+    # Responses and their meanings defined in Apps Script.
     if response_text != "OK":
         exit_with_error(f"Apps Script: {response_text}")
 
@@ -104,9 +108,15 @@ def main() -> None:
     status: str = args.status
     emoji: str = args.emoji
 
-    secrets = load_secrets()
+    api_secret = load_api_secret()
+    deployment_id = parse_deployment_id()
     csv_line = format_csv_line(status, emoji)
-    call_apps_script(csv_line, secrets)
+
+    response_text = call_apps_script(deployment_id, {
+        "line": csv_line,
+        "secret": api_secret,
+    })
+    process_apps_script_response(response_text)
 
 
 if __name__ == "__main__":

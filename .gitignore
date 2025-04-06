@@ -145,3 +145,6 @@ build/*
 
 # Mac.
 .DS_Store
+
+# API shared secret.
+secret.txt
