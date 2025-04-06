@@ -6,6 +6,7 @@ import argparse
 import csv
 import http.client
 import io
+import os
 import subprocess
 import sys
 import urllib.error
@@ -46,11 +47,17 @@ def load_api_secret() -> str:
 
 
 def parse_deployment_id() -> str:
+    # NOTE: .app shells use a minified default environment, so we need
+    # to manually restore PATH to include anything we need.
+    env = os.environ.copy()
+    env["PATH"] = f"/opt/homebrew/bin:${env['PATH']}"
+
     # pylint: disable=subprocess-run-check
     process = subprocess.run(
         ["clasp", "list-deployments"],
         capture_output=True,
         text=True,
+        env=env,
     )
 
     if process.returncode != 0:

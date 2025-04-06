@@ -2,8 +2,15 @@
 -- Top-level script that delegates to (1) the status extraction script and then
 -- (2) uploading the status as a CSV entry to our Google Drive source of truth.
 
+-- Dynamically calculate paths of the other scripts based on path of currently
+-- running AppleScript app (independence from CWD).
+set thisScriptPath to POSIX path of (path to me)
+set srcDirectory to do shell script "dirname " & quoted form of thisScriptPath
+set uploadScriptPath to srcDirectory & "/log_status.py"
+set extractScriptPath to srcDirectory & "/extract_status.applescript"
+
 try
-    set statusOutput to do shell script "./extract_status.applescript"
+    set statusOutput to do shell script extractScriptPath
 on error errorMessage
     display dialog "Status extraction error: " & errorMessage
     error errorMessage
@@ -19,8 +26,10 @@ set statusEmoji to item 2 of statusLines
 set safeText to do shell script "printf '%q' " & quoted form of statusText
 
 try
-    do shell script "./log_status.py " & safeText & " '" & statusEmoji & "'"
+    do shell script uploadScriptPath & " " & safeText & " '" & statusEmoji & "'"
 on error errorMessage
     display dialog "Status upload error: " & errorMessage
     error errorMessage
 end try
+
+display dialog "Custom status extracted and uploaded successfully!"

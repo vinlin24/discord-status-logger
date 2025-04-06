@@ -148,3 +148,6 @@ build/*
 
 # API shared secret.
 secret.txt
+
+# Bundled application.
+*.app
