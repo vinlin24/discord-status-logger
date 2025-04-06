@@ -1,0 +1,17 @@
+{
+  "name": "discord-status-logger",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "tsc",
+    "predeploy": "npm run build",
+    "deploy": "clasp push"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.97",
+    "typescript": "^5.8.3"
+  }
+}

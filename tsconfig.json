@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "none",
+    "rootDir": "cloud",
+    "outDir": "build",
+    "typeRoots": ["node_modules/@types"],
+    "strict": true,
+    "skipLibCheck": true
+  },
+}
