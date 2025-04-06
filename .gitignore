@@ -137,7 +137,7 @@ dist
 
 # Clasp.
 .clasp.json
-build/*
+cloud_build/*
 !appsscript.json
 
 # Workspace settings.
@@ -151,3 +151,6 @@ secret.txt
 
 # Bundled application.
 *.app
+
+# Intermediate build files.
+build/

@@ -8,7 +8,7 @@ APP_NAME="Discord Status Logger"
 PROJECT_DIR="$(realpath "$(dirname "$0")")"
 
 SRC_SCRIPT="${PROJECT_DIR}/src/status.applescript"
-LAUNCHER_SCRIPT="${PROJECT_DIR}/dist/launcher.applescript"
+LAUNCHER_SCRIPT="${PROJECT_DIR}/build/launcher.applescript"
 APP_OUT="${PROJECT_DIR}/${APP_NAME}.app"
 
 mkdir -p "$(dirname "${LAUNCHER_SCRIPT}")"
