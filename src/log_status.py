@@ -28,8 +28,24 @@ class PostData(TypedDict):
 
 
 parser = argparse.ArgumentParser(prog=SCRIPT_NAME)
-parser.add_argument("status")
-parser.add_argument("emoji")
+
+parser.add_argument(
+    "status",
+    help="text part of custom status (pass empty string if omitted)",
+)
+parser.add_argument(
+    "emoji",
+    help="emoji part of custom status (pass empty string if omitted)",
+)
+parser.add_argument(
+    "-d", "--deployment",
+    metavar="ID",
+    dest="deployment_id",
+    help=(
+        "Google Apps Script deployment ID (defaults to parsing from "
+        "clasp deployment list if omitted)"
+    ),
+)
 
 
 def exit_with_error(message: str) -> NoReturn:
@@ -45,7 +61,7 @@ def load_api_secret() -> str:
     return content.strip()
 
 
-def parse_deployment_id() -> str:
+def parse_deployment_id_from_clasp() -> str:
     # pylint: disable=subprocess-run-check
     process = subprocess.run(
         ["clasp", "list-deployments"],
@@ -109,7 +125,7 @@ def main() -> None:
     emoji: str = args.emoji
 
     api_secret = load_api_secret()
-    deployment_id = parse_deployment_id()
+    deployment_id = parse_deployment_id_from_clasp()
     csv_line = format_csv_line(status, emoji)
 
     response_text = call_apps_script(deployment_id, {
