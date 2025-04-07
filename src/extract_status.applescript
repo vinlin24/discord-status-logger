@@ -9,7 +9,9 @@ set statusSelector to "#popout_51 > div > div > div > div > div > header > div.c
 set emojiSelector to "#popout_51 > div > div > div > div > div > header > div.container_ab8609.biteSize_ab8609.editable_ab8609 > div.outer_ab8609.biteSize_ab8609 > span > div > img"
 
 tell application "Safari"
-    -- NOTE: No `activate` here so the script doesn't steal focus.
+    -- Steal focus. Having it run in the background is cool and all but that may
+    -- make it hard to see why something goes wrong.
+    activate
     open location "https://discord.com/channels/@me"
 end tell
 
